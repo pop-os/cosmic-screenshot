@@ -25,7 +25,7 @@ async fn main() {
         scheme => panic!("unsupported scheme '{}'", scheme),
     };
 
-    fs::rename(tmp_path, &path).expect("failed to rename screenshot file");
+    fs::copy(tmp_path, &path).expect("failed to copy screenshot file");
 
     println!("{}", path.display());
 }
