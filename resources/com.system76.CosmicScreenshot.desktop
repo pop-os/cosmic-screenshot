@@ -1,0 +1,9 @@
+[Desktop Entry]
+Name=COSMIC Screenshot
+Type=Application
+Exec=cosmic-screenshot
+Terminal=false
+Categories=COSMIC;Utility;
+Keywords=COSMIC;
+Icon=camera-photo-symbolic
+StartupNotify=true

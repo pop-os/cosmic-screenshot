@@ -11,6 +11,10 @@ export INSTALL_DIR := base-dir / 'share'
 bin-src := 'target' / 'release' / name
 bin-dst := base-dir / 'bin' / name
 
+desktop := APPID + '.desktop'
+desktop-src := 'resources' / desktop
+desktop-dest := clean(rootdir / prefix) / 'share' / 'applications' / desktop
+
 # Default recipe which runs `just build-release`
 default: build-release
 
@@ -46,6 +50,7 @@ run *args:
 # Installs files
 install:
     install -Dm0755 {{bin-src}} {{bin-dst}}
+    install -Dm-644 {{desktop-src}} {{desktop-dest}}
 
 # Uninstalls installed files
 uninstall:
