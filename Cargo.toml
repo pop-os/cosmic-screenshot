@@ -6,7 +6,9 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-ashpd = "0.4.0"
+ashpd = "0.6.8"
 chrono = "0.4.24"
 dirs = "5.0.1"
 tokio = { version = "1.28.1", features = ["full"] }
+clap = { version = "4.4.16", features = ["derive"] }
+zbus = { version = "3", default-features = false, features = ["tokio"] }
