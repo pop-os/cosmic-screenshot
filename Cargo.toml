@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-ashpd = { version = "0.12", default-features = false, features = ["tokio"] }
+ashpd = { version = "0.12", default-features = false, features = ["tokio", "tracing"] }
 chrono = { version = "0.4.41", default-features = false, features = [
     "alloc",
     "clock",
@@ -13,6 +13,10 @@ dirs = "6"
 tokio = { version = "1.47.1", default-features = false, features = ["macros"] }
 clap = { version = "4.5.46", features = ["derive"] }
 zbus = { version = "5", default-features = false }
+
+# Logging
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 
 # Internationalization
 i18n-embed = { version = "0.16", features = [

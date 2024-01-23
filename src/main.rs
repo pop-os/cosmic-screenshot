@@ -1,8 +1,11 @@
+use std::{collections::HashMap, fs, os::unix::fs::MetadataExt, path::PathBuf};
+
 use ashpd::desktop::screenshot::Screenshot;
 use clap::{ArgAction, Parser, command};
-use std::{collections::HashMap, fs, os::unix::fs::MetadataExt, path::PathBuf};
-use zbus::{Connection, proxy, zvariant::Value};
+use tracing_subscriber::{EnvFilter, fmt, prelude::*};
+use zbus::{Connection, dbus_proxy, zvariant::Value};
 
+mod error;
 mod localize;
 
 #[derive(Parser, Default, Debug, Clone, PartialEq, Eq)]
@@ -54,9 +57,12 @@ trait Notifications {
     ) -> zbus::Result<u32>;
 }
 
-//TODO: better error handling
 #[tokio::main(flavor = "current_thread")]
 async fn main() {
+    tracing_subscriber::registry()
+        .with(fmt::layer())
+        .with(EnvFilter::from_default_env())
+        .init();
     crate::localize::localize();
 
     let args = Args::parse();
