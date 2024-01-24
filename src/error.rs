@@ -37,12 +37,19 @@ impl Error {
     /// Localized, condensed error message for end users
     pub fn to_user_facing(&self) -> String {
         match self {
-            Self::MissingSaveDirectory(p) => {
-                format!("unable to save screenshot to {} or Pictures", p.display())
-            }
+            _ if self.unsupported() => "Portal does not support screenshots".into(),
             _ if self.cancelled() => "Screenshot cancelled".into(),
             _ if self.zbus() => "Problem communicating with D-Bus".into(),
-            _ if self.unsupported() => "Portal does not support screenshots".into(),
+            Self::MissingSaveDirectory(p) => {
+                format!("Unable to save screenshot to {} or Pictures", p.display())
+            }
+            Self::Ashpd(e) => match e {
+                AshpdError::Portal(e) => match e {
+                    PortalError::NotAllowed(msg) => format!("Screenshot not allowed: {msg}"),
+                    _ => "Failed to take screenshot".into(),
+                },
+                _ => "Failed to take screenshot".into(),
+            },
         }
     }
 
@@ -67,12 +74,45 @@ impl Error {
 
     /// Portal does not support screenshots
     pub fn unsupported(&self) -> bool {
-        unimplemented!()
+        if let Self::Ashpd(e) = self {
+            match e {
+                // Requires version `x` but interface only supports version `y`
+                AshpdError::RequiresVersion(_, _) => true,
+                // Unsupported screenshot method or interface for screenshots not found
+                AshpdError::Portal(PortalError::ZBus(e)) => {
+                    *e == ZbusError::Unsupported || *e == ZbusError::InterfaceNotFound
+                }
+                AshpdError::Zbus(e) => {
+                    *e == ZbusError::Unsupported || *e == ZbusError::InterfaceNotFound
+                }
+                _ => false,
+            }
+        } else {
+            false
+        }
     }
 
     /// D-Bus communication problem
+    ///
+    /// [zbus::Error] encapsulates many different problems, many of which are programmer errors
+    /// which shouldn't occur during normal operation.
     pub fn zbus(&self) -> bool {
-        unimplemented!()
+        if let Self::Ashpd(e) = self {
+            match e {
+                AshpdError::Zbus(_) => true,
+                AshpdError::Portal(PortalError::ZBus(_)) => {
+                    // if let PortalError::ZBus(_) = e {
+                    //     true
+                    // } else {
+                    //     false
+                    // }
+                    true
+                }
+                _ => false,
+            }
+        } else {
+            false
+        }
     }
 }
 
