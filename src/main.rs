@@ -4,6 +4,11 @@ use ashpd::desktop::screenshot::Screenshot;
 use clap::{ArgAction, Parser, command};
 use tracing::{error, info};
 use tracing_subscriber::{EnvFilter, fmt, prelude::*};
+use zbus::{
+    Connection, dbus_proxy,
+    export::futures_util::{TryFutureExt, future::FutureExt},
+    zvariant::Value,
+};
 use zbus::{Connection, dbus_proxy, zvariant::Value};
 
 use error::Error;
@@ -58,6 +63,29 @@ trait Notifications {
         hints: HashMap<&str, &Value<'_>>,
         expire_timeout: i32,
     ) -> zbus::Result<u32>;
+}
+
+// Send a notification for the screenshot app.
+async fn send_notify(summary: &str, body: &str) -> Result<(), Error> {
+    let connection = Connection::session().await.map_err(Error::Notify)?;
+
+    let proxy = NotificationsProxy::new(&connection)
+        .await
+        .map_err(Error::Notify)?;
+    proxy
+        .notify(
+            &fl!("cosmic-screenshot"),
+            0,
+            "com.system76.CosmicScreenshot",
+            summary,
+            body,
+            &[],
+            HashMap::from([("transient", &Value::Bool(true))]),
+            5000,
+        )
+        .await
+        .map_err(Error::Notify)
+        .map(|_| ())
 }
 
 #[tokio::main(flavor = "current_thread")]
@@ -140,29 +168,13 @@ async fn main() -> Result<(), Error> {
     info!("Saving screenshot to {path}");
 
     if args.notify {
-        let connection = Connection::session().await.map_err(Error::Notify)?;
-
         let message = if path.is_empty() {
             fl!("screenshot-saved-to-clipboard")
         } else {
             fl!("screenshot-saved-to")
         };
-        let proxy = NotificationsProxy::new(&connection)
-            .await
-            .map_err(Error::Notify)?;
-        _ = proxy
-            .notify(
-                &fl!("cosmic-screenshot"),
-                0,
-                "com.system76.CosmicScreenshot",
-                &message,
-                &path,
-                &[],
-                HashMap::from([("transient", &Value::Bool(true))]),
-                5000,
-            )
-            .await
-            .map_err(Error::Notify)?;
+
+        send_notify(&message, &path).await?;
     }
 
     Ok(())
