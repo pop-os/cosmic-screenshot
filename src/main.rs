@@ -1,6 +1,9 @@
+mod error;
+mod localize;
+
 use std::{collections::HashMap, fs, os::unix::fs::MetadataExt, path::PathBuf};
 
-use ashpd::desktop::screenshot::Screenshot;
+use ashpd::desktop::screenshot::{Screenshot, ScreenshotRequest};
 use clap::{ArgAction, Parser, command};
 use tracing::{error, info};
 use tracing_subscriber::{EnvFilter, fmt, prelude::*};
@@ -9,12 +12,8 @@ use zbus::{
     export::futures_util::{TryFutureExt, future::FutureExt},
     zvariant::Value,
 };
-use zbus::{Connection, dbus_proxy, zvariant::Value};
 
 use error::Error;
-
-mod error;
-mod localize;
 
 #[derive(Parser, Default, Debug, Clone, PartialEq, Eq)]
 #[command(version, about, long_about = None)]
@@ -88,15 +87,7 @@ async fn send_notify(summary: &str, body: &str) -> Result<(), Error> {
         .map(|_| ())
 }
 
-#[tokio::main(flavor = "current_thread")]
-async fn main() -> Result<(), Error> {
-    tracing_subscriber::registry()
-        .with(fmt::layer())
-        .with(EnvFilter::from_default_env())
-        .init();
-    crate::localize::localize();
-
-    let args = Args::parse();
+async fn request_screenshot(args: Args) -> Result<String, Error> {
     let picture_dir = (!args.interactive)
         .then(|| {
             args.save_dir
@@ -115,7 +106,7 @@ async fn main() -> Result<(), Error> {
         .response()?;
 
     let uri = response.uri();
-    let path = match uri.scheme() {
+    match uri.scheme() {
         "file" => {
             let response_path = uri
                 .to_file_path()
@@ -152,29 +143,50 @@ async fn main() -> Result<(), Error> {
                         context: "moving screenshot",
                     })?;
                 }
-
-                path.to_string_lossy().to_string()
+                Ok(path.to_string_lossy().to_string())
             } else {
-                response_path.to_string_lossy().to_string()
+                Ok(uri.path().to_string())
             }
         }
-        "clipboard" => String::new(),
+        "clipboard" => Ok(String::new()),
         scheme => {
             error!("Unsupported URL scheme: {scheme}");
-            return Err(Error::Ashpd(ashpd::Error::Zbus(zbus::Error::Unsupported)));
+            Err(Error::Ashpd(ashpd::Error::Zbus(zbus::Error::Unsupported)))
+        }
+    }
+}
+
+#[tokio::main(flavor = "current_thread")]
+async fn main() -> Result<(), Error> {
+    // Init tracing but don't panic if it fails
+    let _ = tracing_subscriber::registry()
+        .with(fmt::layer())
+        .with(EnvFilter::from_default_env())
+        .try_init();
+    crate::localize::localize();
+
+    let args = Args::parse();
+    let notify = args.notify;
+
+    let path = match request_screenshot(args).await {
+        Ok(path) => {
+            info!("Saving screenshot to {path}");
+            path
+        }
+        Err(e) => {
+            error!("Screenshot failed with {e}");
+            e.to_user_facing()
         }
     };
 
-    info!("Saving screenshot to {path}");
-
-    if args.notify {
+    if notify {
         let message = if path.is_empty() {
             fl!("screenshot-saved-to-clipboard")
         } else {
             fl!("screenshot-saved-to")
         };
 
-        send_notify(&message, &path).await?;
+        send_notify(&path, &message).await?;
     }
 
     Ok(())
