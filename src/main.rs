@@ -2,8 +2,11 @@ use std::{collections::HashMap, fs, os::unix::fs::MetadataExt, path::PathBuf};
 
 use ashpd::desktop::screenshot::Screenshot;
 use clap::{ArgAction, Parser, command};
+use tracing::{error, info};
 use tracing_subscriber::{EnvFilter, fmt, prelude::*};
 use zbus::{Connection, dbus_proxy, zvariant::Value};
+
+use error::Error;
 
 mod error;
 mod localize;
@@ -58,7 +61,7 @@ trait Notifications {
 }
 
 #[tokio::main(flavor = "current_thread")]
-async fn main() {
+async fn main() -> Result<(), Error> {
     tracing_subscriber::registry()
         .with(fmt::layer())
         .with(EnvFilter::from_default_env())
@@ -66,20 +69,22 @@ async fn main() {
     crate::localize::localize();
 
     let args = Args::parse();
-    let picture_dir = (!args.interactive).then(|| {
-        args.save_dir
-            .filter(|dir| dir.is_dir())
-            .unwrap_or_else(|| dirs::picture_dir().expect("failed to locate picture directory"))
-    });
+    let picture_dir = (!args.interactive)
+        .then(|| {
+            args.save_dir
+                .clone()
+                .filter(|dir| dir.is_dir())
+                .or_else(dirs::picture_dir)
+                .ok_or_else(|| Error::MissingSaveDirectory(args.save_dir))
+        })
+        .transpose()?;
 
     let response = Screenshot::request()
         .interactive(args.interactive)
         .modal(args.modal)
         .send()
-        .await
-        .expect("failed to send screenshot request")
-        .response()
-        .expect("failed to receive screenshot response");
+        .await?
+        .response()?;
 
     let uri = response.uri();
     let path = match uri.scheme() {
@@ -92,17 +97,32 @@ async fn main() {
                 let filename = format!("Screenshot_{}.png", date.format("%Y-%m-%d_%H-%M-%S"));
                 let path = picture_dir.join(filename);
                 if fs::metadata(&picture_dir)
-                    .expect("Failed to get medatata on filesystem for screenshot destination")
+                    .map_err(|error| Error::SaveScreenshot {
+                        error,
+                        context: "metadata for screenshot destination",
+                    })?
                     .dev()
                     != fs::metadata(&response_path)
-                        .expect("Failed to get metadata on filesystem for temporary path")
+                        .map_err(|error| Error::SaveScreenshot {
+                            error,
+                            context: "metadata for temporary path",
+                        })?
                         .dev()
                 {
                     // copy file instead
-                    fs::copy(&response_path, &path).expect("failed to move screenshot");
-                    fs::remove_file(&response_path).expect("failed to remove temporary screenshot");
+                    fs::copy(&response_path, &path).map_err(|error| Error::SaveScreenshot {
+                        error,
+                        context: "copying screenshot",
+                    })?;
+                    fs::remove_file(&response_path).map_err(|error| Error::SaveScreenshot {
+                        error,
+                        context: "removing temporary screenshot",
+                    })?;
                 } else {
-                    fs::rename(&response_path, &path).expect("failed to move screenshot");
+                    fs::rename(&response_path, &path).map_err(|error| Error::SaveScreenshot {
+                        error,
+                        context: "moving screenshot",
+                    })?;
                 }
 
                 path.to_string_lossy().to_string()
@@ -111,15 +131,16 @@ async fn main() {
             }
         }
         "clipboard" => String::new(),
-        scheme => panic!("unsupported scheme '{}'", scheme),
+        scheme => {
+            error!("Unsupported URL scheme: {scheme}");
+            return Err(Error::Ashpd(ashpd::Error::Zbus(zbus::Error::Unsupported)));
+        }
     };
 
-    println!("{path}");
+    info!("Saving screenshot to {path}");
 
     if args.notify {
-        let connection = Connection::session()
-            .await
-            .expect("failed to connect to session bus");
+        let connection = Connection::session().await.map_err(Error::Notify)?;
 
         let message = if path.is_empty() {
             fl!("screenshot-saved-to-clipboard")
@@ -128,7 +149,7 @@ async fn main() {
         };
         let proxy = NotificationsProxy::new(&connection)
             .await
-            .expect("failed to create proxy");
+            .map_err(Error::Notify)?;
         _ = proxy
             .notify(
                 &fl!("cosmic-screenshot"),
@@ -141,6 +162,8 @@ async fn main() {
                 5000,
             )
             .await
-            .expect("failed to send notification");
+            .map_err(Error::Notify)?;
     }
+
+    Ok(())
 }

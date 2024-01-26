@@ -1,6 +1,7 @@
 use std::{
     error::Error as StdError,
     fmt::{self, Display},
+    io,
     path::PathBuf,
 };
 
@@ -12,9 +13,17 @@ use zbus::Error as ZbusError;
 /// The primary purpose of this type is to provide simple user facing messages.
 #[derive(Debug)]
 pub enum Error {
+    /// Screenshot errors from the portal or D-Bus
     Ashpd(AshpdError),
+    /// Failure to post a notification
+    Notify(ZbusError),
     /// Invalid directory path passed AND no Pictures XDG directory
-    MissingSaveDirectory(PathBuf),
+    MissingSaveDirectory(Option<PathBuf>),
+    /// Screenshot succeeded but cannot be saved
+    SaveScreenshot {
+        error: io::Error,
+        context: &'static str,
+    },
 }
 
 impl StdError for Error {}
@@ -24,11 +33,19 @@ impl Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Ashpd(e) => e.fmt(f),
-            Self::MissingSaveDirectory(p) => write!(
-                f,
-                "unable to save screenshot to {} or the Pictures directory",
-                p.display()
-            ),
+            Self::Notify(e) => write!(f, "posting a notification: {e}"),
+            Self::MissingSaveDirectory(p) => {
+                let msg = p
+                    .as_deref()
+                    .map(|path| format!("opening `{}` or the Pictures directory", path.display()));
+
+                write!(
+                    f,
+                    "{}",
+                    msg.as_deref().unwrap_or("opening Pictures directory")
+                )
+            }
+            Self::SaveScreenshot { error, context } => write!(f, "{context}: {error}"),
         }
     }
 }
@@ -40,9 +57,15 @@ impl Error {
             _ if self.unsupported() => "Portal does not support screenshots".into(),
             _ if self.cancelled() => "Screenshot cancelled".into(),
             _ if self.zbus() => "Problem communicating with D-Bus".into(),
-            Self::MissingSaveDirectory(p) => {
-                format!("Unable to save screenshot to {} or Pictures", p.display())
-            }
+            Self::MissingSaveDirectory(p) => p
+                .as_deref()
+                .map(|path| {
+                    format!(
+                        "Unable to save screenshot to {} or the Pictures directory",
+                        path.display()
+                    )
+                })
+                .unwrap_or_else(|| "Unable to save screenshot to the Pictures directory".into()),
             Self::Ashpd(e) => match e {
                 AshpdError::Portal(e) => match e {
                     PortalError::NotAllowed(msg) => format!("Screenshot not allowed: {msg}"),
@@ -50,6 +73,8 @@ impl Error {
                 },
                 _ => "Failed to take screenshot".into(),
             },
+            Self::SaveScreenshot { .. } => "Screenshot succeeded but couldn't be saved".into(),
+            _ => "Failed to take screenshot".into(),
         }
     }
 
