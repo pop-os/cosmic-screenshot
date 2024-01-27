@@ -4,15 +4,21 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-ashpd = { version = "0.12", default-features = false, features = ["tokio", "tracing"] }
-chrono = { version = "0.4.41", default-features = false, features = [
-    "alloc",
-    "clock",
+# App
+chrono = { version = "0.4", default-features = false, features = [
+  "alloc",
+  "clock",
 ] }
+clap = { version = "4.5", features = ["derive"] }
 dirs = "6"
-tokio = { version = "1.47.1", default-features = false, features = ["macros"] }
-clap = { version = "4.5.46", features = ["derive"] }
-zbus = { version = "5", default-features = false }
+tokio = { version = "1", default-features = false, features = ["macros"] }
+
+# Screenshots/D-Bus comm
+ashpd = { version = "0.12", default-features = false, features = [
+  "tokio",
+  "tracing",
+] }
+zbus = { version = "5", default-features = false, features = ["tokio"] }
 
 # Logging
 tracing = "0.1"
@@ -20,8 +26,8 @@ tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 
 # Internationalization
 i18n-embed = { version = "0.16", features = [
-    "fluent-system",
-    "desktop-requester",
+  "fluent-system",
+  "desktop-requester",
 ] }
 i18n-embed-fl = "0.10"
 rust-embed = "8.5"

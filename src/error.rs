@@ -2,11 +2,13 @@ use std::{
     error::Error as StdError,
     fmt::{self, Display},
     io,
-    path::PathBuf,
+    path::{Path, PathBuf},
 };
 
-use ashpd::{desktop::ResponseError, Error as AshpdError, PortalError};
+use ashpd::{Error as AshpdError, PortalError, desktop::ResponseError};
 use zbus::Error as ZbusError;
+
+use crate::fl;
 
 /// Error type for requesting screenshots from the XDG portal.
 ///
@@ -54,27 +56,20 @@ impl Error {
     /// Localized, condensed error message for end users
     pub fn to_user_facing(&self) -> String {
         match self {
-            _ if self.unsupported() => "Portal does not support screenshots".into(),
-            _ if self.cancelled() => "Screenshot cancelled".into(),
-            _ if self.zbus() => "Problem communicating with D-Bus".into(),
-            Self::MissingSaveDirectory(p) => p
-                .as_deref()
-                .map(|path| {
-                    format!(
-                        "Unable to save screenshot to {} or the Pictures directory",
-                        path.display()
-                    )
-                })
-                .unwrap_or_else(|| "Unable to save screenshot to the Pictures directory".into()),
-            Self::Ashpd(e) => match e {
-                AshpdError::Portal(e) => match e {
-                    PortalError::NotAllowed(msg) => format!("Screenshot not allowed: {msg}"),
-                    _ => "Failed to take screenshot".into(),
-                },
-                _ => "Failed to take screenshot".into(),
-            },
-            Self::SaveScreenshot { .. } => "Screenshot succeeded but couldn't be saved".into(),
-            _ => "Failed to take screenshot".into(),
+            // _ if self.unsupported() => fl!("screenshot-unsupported"),
+            _ if self.cancelled() => fl!("screenshot-cancelled"),
+            _ if self.zbus() => fl!("screenshot-dbus-err"),
+            Self::MissingSaveDirectory(p) => {
+                fl!(
+                    "screenshot-no-dir",
+                    path = p.as_deref().unwrap_or(Path::new("")).to_string_lossy()
+                )
+            }
+            Self::Ashpd(AshpdError::Portal(PortalError::NotAllowed(msg))) => {
+                fl!("screenshot-not-allowed", msg = msg)
+            }
+            // Self::SaveScreenshot { .. } => "Screenshot captured but couldn't be saved".into(),
+            _ => fl!("screenshot-failed"),
         }
     }
 
@@ -86,13 +81,7 @@ impl Error {
 
         match e {
             AshpdError::Response(e) => *e == ResponseError::Cancelled,
-            AshpdError::Portal(e) => {
-                if let PortalError::Cancelled(_) = e {
-                    true
-                } else {
-                    false
-                }
-            }
+            AshpdError::Portal(PortalError::Cancelled(_)) => true,
             _ => false,
         }
     }
@@ -122,22 +111,11 @@ impl Error {
     /// [zbus::Error] encapsulates many different problems, many of which are programmer errors
     /// which shouldn't occur during normal operation.
     pub fn zbus(&self) -> bool {
-        if let Self::Ashpd(e) = self {
-            match e {
-                AshpdError::Zbus(_) => true,
-                AshpdError::Portal(PortalError::ZBus(_)) => {
-                    // if let PortalError::ZBus(_) = e {
-                    //     true
-                    // } else {
-                    //     false
-                    // }
-                    true
-                }
-                _ => false,
-            }
-        } else {
-            false
-        }
+        matches!(
+            self,
+            Self::Ashpd(AshpdError::Zbus(_))
+                | Self::Ashpd(AshpdError::Portal(PortalError::ZBus(_)))
+        )
     }
 }
 
