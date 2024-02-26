@@ -3,12 +3,17 @@ name = "cosmic-screenshot"
 version = "0.1.0"
 edition = "2021"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
 [dependencies]
-ashpd = "0.6.8"
+# App
 chrono = "0.4.24"
+clap = { version = "4.4.16", features = ["derive"] }
 dirs = "5.0.1"
 tokio = { version = "1.28.1", features = ["full"] }
-clap = { version = "4.4.16", features = ["derive"] }
+
+# Logging
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+# Screenshots/D-Bus comm
+ashpd = { version = "0.6.8", features = ["tracing"] }
 zbus = { version = "3", default-features = false, features = ["tokio"] }

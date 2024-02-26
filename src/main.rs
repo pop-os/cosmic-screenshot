@@ -1,7 +1,15 @@
+#![allow(clippy::too_many_arguments)]
+
+mod error;
+
 use ashpd::desktop::screenshot::Screenshot;
 use clap::{command, ArgAction, Parser};
 use std::{collections::HashMap, fs, os::unix::fs::MetadataExt, path::PathBuf};
+use tracing::{debug, error, info};
+use tracing_subscriber::{fmt, prelude::*, EnvFilter};
 use zbus::{dbus_proxy, zvariant::Value, Connection};
+
+use error::Error;
 
 #[derive(Parser, Default, Debug, Clone, PartialEq, Eq)]
 #[command(version, about, long_about = None)]
@@ -51,27 +59,51 @@ trait Notifications {
     ) -> zbus::Result<u32>;
 }
 
-//TODO: better error handling
-#[tokio::main(flavor = "current_thread")]
-async fn main() {
-    let args = Args::parse();
-    let picture_dir = (!args.interactive).then(|| {
-        args.save_dir
-            .filter(|dir| dir.is_dir())
-            .unwrap_or_else(|| dirs::picture_dir().expect("failed to locate picture directory"))
-    });
+// Send a notification for the screenshot app
+async fn send_notify(summary: &str, body: &str) -> Result<(), Error> {
+    let connection = Connection::session().await.map_err(Error::Notify)?;
+
+    let proxy = NotificationsProxy::new(&connection)
+        .await
+        .map_err(Error::Notify)?;
+    proxy
+        .notify(
+            "Cosmic Screenshot",
+            0,
+            "camera-photo-symbolic",
+            summary,
+            body,
+            &[],
+            HashMap::new(),
+            5000,
+        )
+        .await
+        .map_err(Error::Notify)
+        .map(|_| ())
+}
+
+#[tracing::instrument]
+async fn request_screenshot(args: Args) -> Result<String, Error> {
+    let picture_dir = (!args.interactive)
+        .then(|| {
+            args.save_dir
+                .clone()
+                .filter(|dir| dir.is_dir())
+                .or_else(dirs::picture_dir)
+                .ok_or_else(|| Error::MissingSaveDirectory(args.save_dir))
+        })
+        .transpose()?;
 
     let response = Screenshot::request()
         .interactive(args.interactive)
         .modal(args.modal)
         .send()
-        .await
-        .expect("failed to send screenshot request")
-        .response()
-        .expect("failed to receive screenshot response");
+        .await?
+        .response()?;
 
     let uri = response.uri();
-    let path = match uri.scheme() {
+    debug!("Screenshot request URI: {uri}");
+    match uri.scheme() {
         "file" => {
             if let Some(picture_dir) = picture_dir {
                 let date = chrono::Local::now();
@@ -79,49 +111,76 @@ async fn main() {
                 let path = picture_dir.join(filename);
                 let tmp_path = uri.path();
                 if fs::metadata(&picture_dir)
-                    .expect("Failed to get medatata on filesystem for screenshot destination")
+                    .map_err(|error| Error::SaveScreenshot {
+                        error,
+                        context: "metadata for screenshot destination",
+                    })?
                     .dev()
                     != fs::metadata(tmp_path)
-                        .expect("Failed to get metadata on filesystem for temporary path")
+                        .map_err(|error| Error::SaveScreenshot {
+                            error,
+                            context: "metadata for temporary path",
+                        })?
                         .dev()
                 {
                     // copy file instead
-                    fs::copy(tmp_path, &path).expect("failed to move screenshot");
-                    fs::remove_file(tmp_path).expect("failed to remove temporary screenshot");
+                    fs::copy(tmp_path, &path).map_err(|error| Error::SaveScreenshot {
+                        error,
+                        context: "copying screenshot",
+                    })?;
+                    fs::remove_file(tmp_path).map_err(|error| Error::SaveScreenshot {
+                        error,
+                        context: "removing temporary screenshot",
+                    })?;
                 } else {
-                    fs::rename(tmp_path, &path).expect("failed to move screenshot");
+                    fs::rename(tmp_path, &path).map_err(|error| Error::SaveScreenshot {
+                        error,
+                        context: "moving screenshot",
+                    })?;
                 }
 
-                path.to_string_lossy().to_string()
+                Ok(path.to_string_lossy().to_string())
             } else {
-                uri.path().to_string()
+                Ok(uri.path().to_string())
             }
         }
-        scheme => panic!("unsupported scheme '{}'", scheme),
+        scheme => {
+            error!("Unsupported URL scheme: {scheme}");
+            Err(Error::Ashpd(ashpd::Error::Zbus(zbus::Error::Unsupported)))
+        }
+    }
+}
+
+#[tokio::main(flavor = "current_thread")]
+async fn main() {
+    // Init tracing but don't panic if it fails
+    let _ = tracing_subscriber::registry()
+        .with(fmt::layer())
+        .with(EnvFilter::from_default_env())
+        .try_init();
+
+    let args = Args::parse();
+    let notify = args.notify;
+
+    let (summary, body) = match request_screenshot(args).await {
+        Ok(path) => {
+            info!("Screenshot saved to {path}");
+            ("Screenshot captured", path)
+        }
+        Err(e) => {
+            if !e.cancelled() {
+                error!("Screenshot failed with {e}");
+                ("Screenshot failed", e.to_user_facing())
+            } else {
+                info!("Screenshot cancelled");
+                ("Screenshot cancelled", "".into())
+            }
+        }
     };
 
-    println!("{path}");
-
-    if args.notify {
-        let connection = Connection::session()
-            .await
-            .expect("failed to connect to session bus");
-
-        let proxy = NotificationsProxy::new(&connection)
-            .await
-            .expect("failed to create proxy");
-        _ = proxy
-            .notify(
-                "Cosmic Screenshot",
-                0,
-                "camera-photo-symbolic",
-                &path,
-                "",
-                &[],
-                HashMap::new(),
-                5000,
-            )
-            .await
-            .expect("failed to send notification");
+    if notify {
+        if let Err(e) = send_notify(summary, &body).await {
+            error!("Failed to post notification on completion: {e}");
+        }
     }
 }
