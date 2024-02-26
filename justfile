@@ -50,7 +50,7 @@ run *args:
 # Installs files
 install:
     install -Dm0755 {{bin-src}} {{bin-dst}}
-    install -Dm-644 {{desktop-src}} {{desktop-dest}}
+    install -Dm0644 {{desktop-src}} {{desktop-dest}}
 
 # Uninstalls installed files
 uninstall:
