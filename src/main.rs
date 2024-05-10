@@ -97,6 +97,7 @@ async fn main() {
                 uri.path().to_string()
             }
         }
+        "clipboard" => String::new(),
         scheme => panic!("unsupported scheme '{}'", scheme),
     };
 
@@ -107,6 +108,11 @@ async fn main() {
             .await
             .expect("failed to connect to session bus");
 
+        let message = if path.is_empty() {
+            "Screenshot saved to clipboard"
+        } else {
+            "Screenshot saved to:"
+        };
         let proxy = NotificationsProxy::new(&connection)
             .await
             .expect("failed to create proxy");
@@ -115,8 +121,8 @@ async fn main() {
                 "Cosmic Screenshot",
                 0,
                 "camera-photo-symbolic",
+                &message.to_string(),
                 &path,
-                "",
                 &[],
                 HashMap::new(),
                 5000,
