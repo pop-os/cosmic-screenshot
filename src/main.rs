@@ -118,9 +118,9 @@ async fn main() {
             .expect("failed to create proxy");
         _ = proxy
             .notify(
-                "Cosmic Screenshot",
+                "COSMIC Screenshot",
                 0,
-                "camera-photo-symbolic",
+                "com.system76.CosmicScreenshot",
                 &message.to_string(),
                 &path,
                 &[],
