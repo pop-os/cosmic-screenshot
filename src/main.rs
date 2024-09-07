@@ -38,6 +38,7 @@ struct Args {
 #[dbus_proxy(assume_defaults = true)]
 trait Notifications {
     /// Call the org.freedesktop.Notifications.Notify D-Bus method
+    #[allow(clippy::too_many_arguments)]
     fn notify(
         &self,
         app_name: &str,
@@ -121,10 +122,10 @@ async fn main() {
                 "COSMIC Screenshot",
                 0,
                 "com.system76.CosmicScreenshot",
-                &message.to_string(),
+                message,
                 &path,
                 &[],
-                HashMap::new(),
+                HashMap::from([("transient", &Value::Bool(true))]),
                 5000,
             )
             .await
