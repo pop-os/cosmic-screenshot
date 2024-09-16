@@ -55,6 +55,7 @@ trait Notifications {
 //TODO: better error handling
 #[tokio::main(flavor = "current_thread")]
 async fn main() {
+    env_logger::init();
     let args = Args::parse();
     let picture_dir = (!args.interactive).then(|| {
         args.save_dir
@@ -76,7 +77,6 @@ async fn main() {
         "file" => {
             if let Some(picture_dir) = picture_dir {
                 let date = chrono::Local::now();
-                println!("date: {}", date);
                 let filename = format!("Screenshot_{}.png", date.format("%Y-%m-%d_%H-%M-%S"));
                 let path = picture_dir.join(filename);
                 let tmp_path = uri.path();
@@ -114,7 +114,7 @@ async fn main() {
         scheme => panic!("unsupported scheme '{}'", scheme),
     };
 
-    println!("{path}");
+    log::info!("{path}");
 
     if args.notify {
         let connection = Connection::session()
