@@ -1,6 +1,7 @@
 use ashpd::desktop::screenshot::Screenshot;
 use clap::{command, ArgAction, Parser};
-use std::{collections::HashMap, fs, os::unix::fs::MetadataExt, path::PathBuf};
+use regex::Regex;
+use std::{collections::HashMap, fmt::Debug, fs, os::unix::fs::MetadataExt, path::PathBuf};
 use zbus::{dbus_proxy, zvariant::Value, Connection};
 
 #[derive(Parser, Default, Debug, Clone, PartialEq, Eq)]
@@ -75,6 +76,7 @@ async fn main() {
         "file" => {
             if let Some(picture_dir) = picture_dir {
                 let date = chrono::Local::now();
+                println!("date: {}", date);
                 let filename = format!("Screenshot_{}.png", date.format("%Y-%m-%d_%H-%M-%S"));
                 let path = picture_dir.join(filename);
                 let tmp_path = uri.path();
@@ -94,7 +96,18 @@ async fn main() {
 
                 path.to_string_lossy().to_string()
             } else {
-                uri.path().to_string()
+                let re = Regex::new(r"screenshot-(\d{4}-\d{2}-\d{2}-\d{2}-\d{2}-\d{2})").unwrap();
+                let date = chrono::Local::now();
+                let new_uri = re
+                    .replace(
+                        uri.path(),
+                        format!("Screenshot_{}", date.format("%Y-%m-%d_%H-%M-%S")),
+                    )
+                    .to_string();
+
+                fs::rename(&uri.path(), &new_uri).expect("failed to rename file");
+
+                new_uri.to_string()
             }
         }
         "clipboard" => String::new(),
