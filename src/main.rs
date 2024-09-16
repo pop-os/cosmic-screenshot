@@ -1,6 +1,7 @@
 use ashpd::desktop::screenshot::Screenshot;
 use clap::{command, ArgAction, Parser};
-use std::{collections::HashMap, fs, os::unix::fs::MetadataExt, path::PathBuf};
+use regex::Regex;
+use std::{collections::HashMap, fmt::Debug, fs, os::unix::fs::MetadataExt, path::PathBuf};
 use zbus::{dbus_proxy, zvariant::Value, Connection};
 
 #[derive(Parser, Default, Debug, Clone, PartialEq, Eq)]
@@ -54,6 +55,7 @@ trait Notifications {
 //TODO: better error handling
 #[tokio::main(flavor = "current_thread")]
 async fn main() {
+    env_logger::init();
     let args = Args::parse();
     let picture_dir = (!args.interactive).then(|| {
         args.save_dir
@@ -94,14 +96,25 @@ async fn main() {
 
                 path.to_string_lossy().to_string()
             } else {
-                uri.path().to_string()
+                let re = Regex::new(r"screenshot-(\d{4}-\d{2}-\d{2}-\d{2}-\d{2}-\d{2})").unwrap();
+                let date = chrono::Local::now();
+                let new_uri = re
+                    .replace(
+                        uri.path(),
+                        format!("Screenshot_{}", date.format("%Y-%m-%d_%H-%M-%S")),
+                    )
+                    .to_string();
+
+                fs::rename(&uri.path(), &new_uri).expect("failed to rename file");
+
+                new_uri.to_string()
             }
         }
         "clipboard" => String::new(),
         scheme => panic!("unsupported scheme '{}'", scheme),
     };
 
-    println!("{path}");
+    log::info!("{path}");
 
     if args.notify {
         let connection = Connection::session()
