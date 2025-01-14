@@ -3,12 +3,17 @@ name = "cosmic-screenshot"
 version = "0.1.0"
 edition = "2021"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
 [dependencies]
-ashpd = "0.6.8"
-chrono = "0.4.24"
+ashpd = { version = "0.6.8", default-features = false, features = ["tokio"] }
+chrono = { version = "0.4.24", default-features = false, features = ["alloc", "clock"] }
 dirs = "5.0.1"
-tokio = { version = "1.28.1", features = ["full"] }
+tokio = { version = "1.28.1", default-features = false, features = ["macros"] }
 clap = { version = "4.4.16", features = ["derive"] }
-zbus = { version = "3", default-features = false, features = ["tokio"] }
+zbus = { version = "3", default-features = false }
+
+[profile.release]
+codegen-units = 1
+lto = "fat"
+opt-level = 3
+panic = "abort"
+strip = true
