@@ -3,6 +3,8 @@ use clap::{ArgAction, Parser, command};
 use std::{collections::HashMap, fs, os::unix::fs::MetadataExt, path::PathBuf};
 use zbus::{Connection, proxy, zvariant::Value};
 
+mod localize;
+
 #[derive(Parser, Default, Debug, Clone, PartialEq, Eq)]
 #[command(version, about, long_about = None)]
 struct Args {
@@ -55,6 +57,8 @@ trait Notifications {
 //TODO: better error handling
 #[tokio::main(flavor = "current_thread")]
 async fn main() {
+    crate::localize::localize();
+
     let args = Args::parse();
     let picture_dir = (!args.interactive).then(|| {
         args.save_dir
@@ -112,19 +116,19 @@ async fn main() {
             .expect("failed to connect to session bus");
 
         let message = if path.is_empty() {
-            "Screenshot saved to clipboard"
+            fl!("screenshot-saved-to-clipboard")
         } else {
-            "Screenshot saved to:"
+            fl!("screenshot-saved-to")
         };
         let proxy = NotificationsProxy::new(&connection)
             .await
             .expect("failed to create proxy");
         _ = proxy
             .notify(
-                "COSMIC Screenshot",
+                &fl!("cosmic-screenshot"),
                 0,
                 "com.system76.CosmicScreenshot",
-                message,
+                &message,
                 &path,
                 &[],
                 HashMap::from([("transient", &Value::Bool(true))]),
