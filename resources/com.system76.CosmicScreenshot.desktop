@@ -1,8 +1,9 @@
 [Desktop Entry]
 Name=COSMIC Screenshot
-Name[zh_CN]=COSMIC 截图
 Name[ar]=مُلتَقِطُ شَاشَةِ كوزمِك
+Name[pl]=Zrzuty ekranu COSMIC
 Name[pt]=Captura de Tela
+Name[zh_CN]=COSMIC 截图
 Type=Application
 Exec=cosmic-screenshot
 Terminal=false
