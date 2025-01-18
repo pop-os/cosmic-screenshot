@@ -1,6 +1,7 @@
 use ashpd::desktop::screenshot::Screenshot;
 use clap::{command, ArgAction, Parser};
 use std::{collections::HashMap, fs, os::unix::fs::MetadataExt, path::PathBuf};
+use strfmt::strfmt;
 use zbus::{dbus_proxy, zvariant::Value, Connection};
 
 #[derive(Parser, Default, Debug, Clone, PartialEq, Eq)]
@@ -33,6 +34,9 @@ struct Args {
     /// The directory to save the screenshot to, if not performing an interactive screenshot
     #[clap(short, long)]
     save_dir: Option<PathBuf>,
+    /// The format of the new screenshot file's name
+    #[clap(long, default_value("Screenshot_{date}.png"))]
+    filename_format: String,
 }
 
 #[dbus_proxy(assume_defaults = true)]
@@ -75,8 +79,9 @@ async fn main() {
     let path = match uri.scheme() {
         "file" => {
             if let Some(picture_dir) = picture_dir {
-                let date = chrono::Local::now();
-                let filename = format!("Screenshot_{}.png", date.format("%Y-%m-%d_%H-%M-%S"));
+                let date = chrono::Local::now().format("%Y-%m-%d_%H-%M-%S").to_string();
+                let filename =
+                    strfmt!(&args.filename_format, date).expect("failed to format file name");
                 let path = picture_dir.join(filename);
                 let tmp_path = uri.path();
                 if fs::metadata(&picture_dir)
