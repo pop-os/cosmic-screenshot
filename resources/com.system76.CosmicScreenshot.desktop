@@ -1,5 +1,6 @@
 [Desktop Entry]
 Name=COSMIC Screenshot
+Name[pt]=Captura de Tela
 Type=Application
 Exec=cosmic-screenshot
 Terminal=false
