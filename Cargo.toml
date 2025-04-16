@@ -10,6 +10,7 @@ dirs = "5.0.1"
 tokio = { version = "1.28.1", default-features = false, features = ["macros"] }
 clap = { version = "4.4.16", features = ["derive"] }
 zbus = { version = "3", default-features = false }
+strfmt = "0.2.4"
 
 [profile.release]
 codegen-units = 1
