@@ -2,6 +2,7 @@ use ashpd::desktop::screenshot::Screenshot;
 use clap::{command, ArgAction, Parser};
 use std::{collections::HashMap, fs, os::unix::fs::MetadataExt, path::PathBuf};
 use zbus::{dbus_proxy, zvariant::Value, Connection};
+use std::process::Command;
 
 #[derive(Parser, Default, Debug, Clone, PartialEq, Eq)]
 #[command(version, about, long_about = None)]
@@ -33,6 +34,9 @@ struct Args {
     /// The directory to save the screenshot to, if not performing an interactive screenshot
     #[clap(short, long)]
     save_dir: Option<PathBuf>,
+    /// Crop geometry in the format "LEFT,TOP WIDTHxHEIGHT", e.g. "0,0 800x600"
+    #[clap(short, long)]
+    geometry: Option<String>,
 }
 
 #[dbus_proxy(assume_defaults = true)]
@@ -50,6 +54,47 @@ trait Notifications {
         hints: HashMap<&str, &Value<'_>>,
         expire_timeout: i32,
     ) -> zbus::Result<u32>;
+}
+
+fn crop(image: &str, crop_spec: &str, output_path: &str) {
+    let parts: Vec<&str> = crop_spec.split(' ').collect();
+    if parts.len() != 2 {
+        eprintln!("Invalid crop spec format");
+        return;
+    }
+
+    let (left, top) = {
+        let coords: Vec<&str> = parts[0].split(',').collect();
+        if coords.len() != 2 {
+            eprintln!("Invalid coordinates in crop spec");
+            return;
+        }
+        (coords[0], coords[1])
+    };
+
+    let (width, height) = {
+        let dims: Vec<&str> = parts[1].split('x').collect();
+        if dims.len() != 2 {
+            eprintln!("Invalid dimensions in crop spec");
+            return;
+        }
+        (dims[0], dims[1])
+    };
+
+    let crop_arg = format!("{}x{}+{}+{}", width, height, left, top);
+
+    let status = Command::new("magick")
+        .arg(image)
+        .arg("-crop")
+        .arg(crop_arg)
+        .arg("+repage")
+        .arg(output_path)
+        .status()
+        .expect("Failed to execute magick crop");
+
+    if !status.success() {
+        eprintln!("Image cropping failed");
+    }
 }
 
 //TODO: better error handling
@@ -79,6 +124,13 @@ async fn main() {
                 let filename = format!("Screenshot_{}.png", date.format("%Y-%m-%d_%H-%M-%S"));
                 let path = picture_dir.join(filename);
                 let tmp_path = uri.path();
+                
+                if !args.interactive {
+                    if let Some(geometry) = args.geometry {
+                        crop(tmp_path, &geometry, tmp_path);
+                    }
+                }
+
                 if fs::metadata(&picture_dir)
                     .expect("Failed to get medatata on filesystem for screenshot destination")
                     .dev()
