@@ -1,5 +1,6 @@
 [Desktop Entry]
 Name=COSMIC Screenshot
+Name[zh_CN]=COSMIC 截图
 Name[ar]=مُلتَقِطُ شَاشَةِ كوزمِك
 Type=Application
 Exec=cosmic-screenshot
