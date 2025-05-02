@@ -2,11 +2,13 @@
 Name=COSMIC Screenshot
 Name[zh_CN]=COSMIC 截图
 Name[ar]=مُلتَقِطُ شَاشَةِ كوزمِك
+Name[pt]=Captura de Tela
 Type=Application
 Exec=cosmic-screenshot
 Terminal=false
 Categories=COSMIC;Utility;
 Keywords=COSMIC;
 Keywords[ar]=كوزمِك;
+Keywords[pt]=screenshot;print;
 Icon=com.system76.CosmicScreenshot
 StartupNotify=true
