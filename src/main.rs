@@ -1,4 +1,5 @@
-use ashpd::desktop::screenshot::Screenshot;
+use ashpd::desktop::{screenshot::Screenshot, ResponseError};
+use ashpd::Error;
 use clap::{command, ArgAction, Parser};
 use std::{collections::HashMap, fs, os::unix::fs::MetadataExt, path::PathBuf};
 use zbus::{dbus_proxy, zvariant::Value, Connection};
@@ -52,24 +53,73 @@ trait Notifications {
     ) -> zbus::Result<u32>;
 }
 
+async fn send_notification(args: &Args, summary: &str, body: &str) {
+    if args.notify {
+        let connection = Connection::session()
+            .await
+            .expect("failed to connect to session bus");
+
+        let proxy = NotificationsProxy::new(&connection)
+            .await
+            .expect("failed to create proxy");
+        _ = proxy
+            .notify(
+                "COSMIC Screenshot",
+                0,
+                "com.system76.CosmicScreenshot",
+                summary,
+                body,
+                &[],
+                HashMap::from([("transient", &Value::Bool(true))]),
+                5000,
+            )
+            .await
+            .expect("failed to send notification");
+    }
+}
+
 //TODO: better error handling
 #[tokio::main(flavor = "current_thread")]
-async fn main() {
+async fn main() -> Result<(), String> {
     let args = Args::parse();
     let picture_dir = (!args.interactive).then(|| {
-        args.save_dir
+        args.clone()
+            .save_dir
             .filter(|dir| dir.is_dir())
             .unwrap_or_else(|| dirs::picture_dir().expect("failed to locate picture directory"))
     });
 
-    let response = Screenshot::request()
+    let response_wrapped = Screenshot::request()
         .interactive(args.interactive)
         .modal(args.modal)
         .send()
         .await
         .expect("failed to send screenshot request")
-        .response()
-        .expect("failed to receive screenshot response");
+        .response();
+
+    let response = match response_wrapped {
+        Ok(resp) => resp,
+
+        Err(Error::Response(ResponseError::Cancelled)) => {
+            let message = "Screenshot has been cancelled";
+            send_notification(
+                &args,
+                message,
+                "Your screenshot request has been cancelled.",
+            )
+            .await;
+
+            return Err(String::from("screenshot cancelled"));
+        }
+
+        err => {
+            let message =
+                String::from(format!("Couldn't get screenshot result, error: {:?}", err,));
+            send_notification(&args, "Error while capturing screenshot", &message).await;
+
+            return Err(message);
+        }
+    };
 
     let uri = response.uri();
     let path = match uri.scheme() {
@@ -104,31 +154,12 @@ async fn main() {
 
     println!("{path}");
 
-    if args.notify {
-        let connection = Connection::session()
-            .await
-            .expect("failed to connect to session bus");
+    let message = if path.is_empty() {
+        "Screenshot saved to clipboard"
+    } else {
+        "Screenshot saved to:"
+    };
+    send_notification(&args, message, &path).await;
 
-        let message = if path.is_empty() {
-            "Screenshot saved to clipboard"
-        } else {
-            "Screenshot saved to:"
-        };
-        let proxy = NotificationsProxy::new(&connection)
-            .await
-            .expect("failed to create proxy");
-        _ = proxy
-            .notify(
-                "COSMIC Screenshot",
-                0,
-                "com.system76.CosmicScreenshot",
-                message,
-                &path,
-                &[],
-                HashMap::from([("transient", &Value::Bool(true))]),
-                5000,
-            )
-            .await
-            .expect("failed to send notification");
-    }
+    Ok(())
 }
