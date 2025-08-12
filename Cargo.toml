@@ -2,14 +2,66 @@
 name = "cosmic-screenshot"
 version = "0.1.0"
 edition = "2021"
+license = "GPL-3.0-only"
+description = "Screenshot functionality for COSMIC desktop with D-Bus interface"
+repository = "https://github.com/pop-os/cosmic-screenshot"
+
+[features]
+default = []
+debug = []
+
+[lib]
+name = "cosmic_screenshot"
+crate-type = ["cdylib", "rlib"]
+
+[[bin]]
+name = "cosmic-screenshot"
+path = "src/main.rs"
 
 [dependencies]
-ashpd = { version = "0.6.8", default-features = false, features = ["tokio"] }
+ashpd = { version = "0.11", default-features = false, features = ["tokio"] }
+async-trait = "0.1"
 chrono = { version = "0.4.24", default-features = false, features = ["alloc", "clock"] }
-dirs = "5.0.1"
-tokio = { version = "1.28.1", default-features = false, features = ["macros"] }
 clap = { version = "4.4.16", features = ["derive"] }
-zbus = { version = "3", default-features = false }
+cosmic-config = { git = "https://github.com/pop-os/libcosmic.git" }
+dirs = "5.0.1"
+futures-util = "0.3.31"
+image = "0.25"
+libc = "0.2"
+nix = { version = "0.29", features = ["process", "user", "fs"] }
+open = "5.3.0"
+serde = { version = "1.0", features = ["derive"] }
+tempfile = "3.0"
+thiserror = "1.0"
+tokio = { version = "1.41.0", features = ["full"] }
+zbus = { version = "5", default-features = false }
+
+[dependencies.libcosmic]
+git = "https://github.com/pop-os/libcosmic.git"
+# See https://github.com/pop-os/libcosmic/blob/master/Cargo.toml for available features.
+features = [
+    # Accessibility support
+#    "a11y",
+    # Uses cosmic-settings-daemon to watch for config file changes
+    "dbus-config",
+    # Support creating additional application windows.
+    "multi-window",
+    # On app startup, focuses an existing instance if the app is already open
+    "single-instance",
+    # Uses tokio as the executor for the runtime
+    "tokio",
+    # Windowing support for X11, Windows, Mac, & Redox
+    "winit",
+    # Add Wayland support to winit
+    "wayland",
+    # GPU-accelerated rendering
+    "wgpu",
+    # File dialogs
+    "xdg-portal",
+]
+default-features = false
+[build-dependencies]
+vergen = { version = "8", features = ["git", "gitcl"] }
 
 [profile.release]
 codegen-units = 1

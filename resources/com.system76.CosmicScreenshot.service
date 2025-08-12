@@ -1,0 +1,4 @@
+[D-BUS Service]
+Name=com.system76.CosmicScreenshot
+Exec=cosmic-screenshot service
+User=

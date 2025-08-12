@@ -1,0 +1,135 @@
+
+<!DOCTYPE node PUBLIC "-//freedesktop//DTD D-BUS Object Introspection 1.0//EN"
+ "http://www.freedesktop.org/standards/dbus/1.0/introspect.dtd">
+<node>
+  <interface name="com.system76.CosmicScreenshot">
+    <!--
+     Take a screenshot with the specified options
+
+     # Arguments
+     * `kind` - Screenshot type: "all", "screen", "window", "select", "region"
+     * `delay_ms` - Delay in milliseconds before taking screenshot
+     * `save_to_clipboard` - Whether to save to clipboard
+     * `save_dir` - Optional directory to save screenshot
+
+     # Returns
+     A dictionary containing:
+     * `path` - File path if saved to file (optional)
+     * `saved_to_clipboard` - Boolean indicating if saved to clipboard
+     * `thumbnail_data` - PNG thumbnail data as bytes
+     * `full_image_data` - Full resolution PNG image data as bytes
+     -->
+    <method name="TakeScreenshot">
+      <arg name="kind" type="s" direction="in"/>
+      <arg name="delay_ms" type="u" direction="in"/>
+      <arg name="save_to_clipboard" type="b" direction="in"/>
+      <arg name="save_dir" type="s" direction="in"/>
+      <arg type="a{sv}" direction="out"/>
+    </method>
+    <!--
+     Get available screenshot backends
+
+     # Returns
+     Array of available screenshot backend names
+     -->
+    <method name="GetAvailableBackends">
+      <arg type="as" direction="out"/>
+    </method>
+    <!--
+     Take a screenshot with backend selection
+
+     # Arguments
+     * `kind` - Screenshot type: "all", "screen", "window", "select", "region"
+     * `delay_ms` - Delay in milliseconds before taking screenshot
+     * `save_to_clipboard` - Whether to save to clipboard
+     * `save_dir` - Optional directory to save screenshot
+     * `backend` - Backend to use: "auto", "kwin", "freedesktop", etc.
+
+     # Returns
+     A dictionary containing:
+     * `path` - File path if saved to file (optional)
+     * `saved_to_clipboard` - Boolean indicating if saved to clipboard
+     * `thumbnail_data` - PNG thumbnail data as bytes
+     * `full_image_data` - Full resolution PNG image data as bytes
+     -->
+    <method name="TakeScreenshotWithBackend">
+      <arg name="kind" type="s" direction="in"/>
+      <arg name="delay_ms" type="u" direction="in"/>
+      <arg name="save_to_clipboard" type="b" direction="in"/>
+      <arg name="save_dir" type="s" direction="in"/>
+      <arg name="backend" type="s" direction="in"/>
+      <arg type="a{sv}" direction="out"/>
+    </method>
+    <!--
+     Check if a specific screenshot kind is supported
+
+     # Arguments
+     * `kind` - Screenshot type to check
+
+     # Returns
+     Boolean indicating if the kind is supported
+     -->
+    <method name="SupportsKind">
+      <arg name="kind" type="s" direction="in"/>
+      <arg type="b" direction="out"/>
+    </method>
+    <!--
+     Check if a specific screenshot kind is supported by a backend
+
+     # Arguments
+     * `kind` - Screenshot type to check
+     * `backend` - Backend name to check
+
+     # Returns
+     Boolean indicating if the kind is supported by the backend
+     -->
+    <method name="SupportsKindWithBackend">
+      <arg name="kind" type="s" direction="in"/>
+      <arg name="backend" type="s" direction="in"/>
+      <arg type="b" direction="out"/>
+    </method>
+    <!--
+     Get detailed backend capabilities
+
+     # Returns
+     A dictionary where keys are backend names and values are arrays of supported screenshot kinds
+     -->
+    <method name="GetBackendCapabilities">
+      <arg type="a{sas}" direction="out"/>
+    </method>
+  </interface>
+  <interface name="org.freedesktop.DBus.Properties">
+    <method name="Get">
+      <arg name="interface_name" type="s" direction="in"/>
+      <arg name="property_name" type="s" direction="in"/>
+      <arg type="v" direction="out"/>
+    </method>
+    <method name="Set">
+      <arg name="interface_name" type="s" direction="in"/>
+      <arg name="property_name" type="s" direction="in"/>
+      <arg name="value" type="v" direction="in"/>
+    </method>
+    <method name="GetAll">
+      <arg name="interface_name" type="s" direction="in"/>
+      <arg type="a{sv}" direction="out"/>
+    </method>
+    <signal name="PropertiesChanged">
+      <arg name="interface_name" type="s"/>
+      <arg name="changed_properties" type="a{sv}"/>
+      <arg name="invalidated_properties" type="as"/>
+    </signal>
+  </interface>
+  <interface name="org.freedesktop.DBus.Peer">
+    <method name="Ping">
+    </method>
+    <method name="GetMachineId">
+      <arg type="s" direction="out"/>
+    </method>
+  </interface>
+  <interface name="org.freedesktop.DBus.Introspectable">
+    <method name="Introspect">
+      <arg type="s" direction="out"/>
+    </method>
+  </interface>
+</node>
+
