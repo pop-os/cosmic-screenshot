@@ -4,11 +4,65 @@ Name[zh_CN]=COSMIC 截图
 Name[ar]=مُلتَقِطُ شَاشَةِ كوزمِك
 Name[pt]=Captura de Tela
 Type=Application
-Exec=cosmic-screenshot
+Exec=cosmic-screenshot gui
 Terminal=false
-Categories=COSMIC;Utility;
-Keywords=COSMIC;
-Keywords[ar]=كوزمِك;
-Keywords[pt]=screenshot;print;
+Categories=COSMIC;Utility;Graphics;Photography;
+Keywords=COSMIC;screenshot;capture;screen;region;print;
+Keywords[ar]=كوزمِك;لقطة;شاشة;
+Keywords[pt]=screenshot;print;captura;tela;
 Icon=com.system76.CosmicScreenshot
 StartupNotify=true
+
+# Permissions for Freedesktop Portal Screenshot
+X-Flatpak-Permission=screenshots
+X-Permission=screenshots
+
+# Permissions for KWin Screenshot access
+X-KDE-ServiceTypes=KPluginInfo
+X-KDE-Library=kwin-screenshot
+X-GNOME-Autostart-Phase=Desktop
+X-KDE-DBUS-Restricted-Interfaces=org.kde.kwin.Screenshot,org.kde.KWin.ScreenShot2
+
+Actions=FullScreen;CurrentScreen;SelectWindow;SelectRegion;SelectArea;StartService;
+
+[Desktop Action FullScreen]
+Name=Take Full Screenshot
+Name[zh_CN]=全屏截图
+Name[ar]=التقاط لقطة شاشة كاملة
+Name[pt]=Captura de Tela Completa
+Exec=cosmic-screenshot take --kind all
+
+[Desktop Action CurrentScreen]
+Name=Screenshot Current Screen
+Name[zh_CN]=截取当前屏幕
+Name[ar]=التقاط الشاشة الحالية
+Name[pt]=Capturar Tela Atual
+Exec=cosmic-screenshot take --kind screen
+
+[Desktop Action SelectWindow]
+Name=Screenshot Window
+Name[zh_CN]=窗口截图
+Name[ar]=التقاط نافذة
+Name[pt]=Capturar Janela
+Exec=cosmic-screenshot take --kind window
+
+[Desktop Action SelectRegion]
+Name=Screenshot Selected Region
+Name[zh_CN]=选区截图
+Name[ar]=التقاط منطقة محددة
+Name[pt]=Capturar Região Selecionada
+Exec=cosmic-screenshot take --kind region
+
+[Desktop Action SelectArea]
+Name=Interactive Screen Selection
+Name[zh_CN]=交互式屏幕选择
+Name[ar]=اختيار تفاعلي للشاشة
+Name[pt]=Seleção Interativa da Tela
+Exec=cosmic-screenshot take --kind select
+
+[Desktop Action StartService]
+Name=Start D-Bus Screenshot Service
+Name[zh_CN]=启动D-Bus截图服务
+Name[ar]=بدء خدمة لقطة الشاشة D-Bus
+Name[pt]=Iniciar Serviço de Captura D-Bus
+Exec=cosmic-screenshot service

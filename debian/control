@@ -1,15 +1,67 @@
 Source: cosmic-screenshot
-Section: admin
+Section: graphics
 Priority: optional
 Maintainer: Jeremy Soller <jeremy@system76.com>
 Build-Depends:
     debhelper-compat (=13),
     just (>= 1.13.0),
     rust-all,
+    pkg-config,
+    libxkbcommon-dev,
+    libwayland-dev,
+    libvulkan-dev,
+    libgl-dev,
+    mesa-common-dev,
+    libinput-dev,
+    libfontconfig-dev,
+    libfreetype6-dev,
+    libx11-dev,
+    libxcursor-dev,
+    libxi-dev,
+    libxrandr-dev,
 Standards-Version: 4.6.2
 Homepage: https://github.com/pop-os/cosmic-screenshot
 
 Package: cosmic-screenshot
 Architecture: amd64 arm64
-Depends: ${misc:Depends}, ${shlibs:Depends}
-Description: Cosmic Screenshot Utility
+Depends: 
+    ${misc:Depends}, 
+    ${shlibs:Depends},
+    libxkbcommon0,
+    libwayland-client0,
+    libvulkan1,
+    libgl1-mesa-glx,
+    libinput10,
+    libfontconfig1,
+    libfreetype6,
+    libx11-6,
+    libxcursor1,
+    libxi6,
+    libxrandr2
+Description: Screenshot functionality for COSMIC desktop
+ cosmic-screenshot is a comprehensive screenshot tool built for the COSMIC
+ desktop environment. It provides multi-backend screenshot capabilities 
+ (KWin, Freedesktop Portal), interactive region selection, D-Bus service 
+ interface, CLI tool, and professional GUI application.
+ .
+ Features include:
+  * Multiple screenshot backends with automatic fallback
+  * Interactive region selection with fullscreen overlay
+  * D-Bus service interface for system integration  
+  * Professional COSMIC UI with persistent settings
+  * CLI interface with all screenshot types supported
+  * Library API for integration with other applications
+
+Package: libcosmic-screenshot-dev
+Architecture: amd64 arm64
+Depends: 
+    ${misc:Depends},
+    cosmic-screenshot (= ${binary:Version})
+Description: Development files for cosmic-screenshot library
+ This package contains the development files for the cosmic-screenshot library,
+ including Rust library files (.rlib) and dynamic library files (.so) for
+ integrating screenshot functionality into other applications.
+ .
+ The library provides a complete screenshot API with multi-backend support,
+ interactive region selection, and D-Bus integration suitable for use in
+ other COSMIC desktop applications.

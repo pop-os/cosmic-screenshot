@@ -1,0 +1,5 @@
+usr/bin/cosmic-screenshot
+usr/share/applications/com.system76.CosmicScreenshot.desktop
+usr/share/dbus-1/services/com.system76.CosmicScreenshot.service
+usr/share/dbus-1/interfaces/com.system76.CosmicScreenshot.xml
+usr/share/icons/hicolor/*/apps/com.system76.CosmicScreenshot.svg
