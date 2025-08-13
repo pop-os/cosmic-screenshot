@@ -74,28 +74,30 @@ async fn main() {
     let uri = response.uri();
     let path = match uri.scheme() {
         "file" => {
+            let response_path = uri
+                .to_file_path()
+                .unwrap_or_else(|_| panic!("unsupported response URI '{uri}'"));
             if let Some(picture_dir) = picture_dir {
                 let date = chrono::Local::now();
                 let filename = format!("Screenshot_{}.png", date.format("%Y-%m-%d_%H-%M-%S"));
                 let path = picture_dir.join(filename);
-                let tmp_path = uri.path();
                 if fs::metadata(&picture_dir)
                     .expect("Failed to get medatata on filesystem for screenshot destination")
                     .dev()
-                    != fs::metadata(tmp_path)
+                    != fs::metadata(&response_path)
                         .expect("Failed to get metadata on filesystem for temporary path")
                         .dev()
                 {
                     // copy file instead
-                    fs::copy(tmp_path, &path).expect("failed to move screenshot");
-                    fs::remove_file(tmp_path).expect("failed to remove temporary screenshot");
+                    fs::copy(&response_path, &path).expect("failed to move screenshot");
+                    fs::remove_file(&response_path).expect("failed to remove temporary screenshot");
                 } else {
-                    fs::rename(tmp_path, &path).expect("failed to move screenshot");
+                    fs::rename(&response_path, &path).expect("failed to move screenshot");
                 }
 
                 path.to_string_lossy().to_string()
             } else {
-                uri.path().to_string()
+                response_path.to_string_lossy().to_string()
             }
         }
         "clipboard" => String::new(),
