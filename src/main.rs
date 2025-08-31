@@ -1,7 +1,7 @@
 use ashpd::desktop::screenshot::Screenshot;
-use clap::{command, ArgAction, Parser};
+use clap::{ArgAction, Parser, command};
 use std::{collections::HashMap, fs, os::unix::fs::MetadataExt, path::PathBuf};
-use zbus::{dbus_proxy, zvariant::Value, Connection};
+use zbus::{Connection, proxy, zvariant::Value};
 
 #[derive(Parser, Default, Debug, Clone, PartialEq, Eq)]
 #[command(version, about, long_about = None)]
@@ -35,7 +35,7 @@ struct Args {
     save_dir: Option<PathBuf>,
 }
 
-#[dbus_proxy(assume_defaults = true)]
+#[proxy(assume_defaults = true)]
 trait Notifications {
     /// Call the org.freedesktop.Notifications.Notify D-Bus method
     #[allow(clippy::too_many_arguments)]
