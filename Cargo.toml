@@ -1,15 +1,18 @@
 [package]
 name = "cosmic-screenshot"
 version = "0.1.0"
-edition = "2021"
+edition = "2024"
 
 [dependencies]
-ashpd = { version = "0.6.8", default-features = false, features = ["tokio"] }
-chrono = { version = "0.4.24", default-features = false, features = ["alloc", "clock"] }
-dirs = "5.0.1"
-tokio = { version = "1.28.1", default-features = false, features = ["macros"] }
-clap = { version = "4.4.16", features = ["derive"] }
-zbus = { version = "3", default-features = false }
+ashpd = { version = "0.12", default-features = false, features = ["tokio"] }
+chrono = { version = "0.4.41", default-features = false, features = [
+    "alloc",
+    "clock",
+] }
+dirs = "6"
+tokio = { version = "1.47.1", default-features = false, features = ["macros"] }
+clap = { version = "4.5.46", features = ["derive"] }
+zbus = { version = "5", default-features = false }
 
 [profile.release]
 codegen-units = 1
