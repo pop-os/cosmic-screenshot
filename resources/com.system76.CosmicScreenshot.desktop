@@ -1,6 +1,7 @@
 [Desktop Entry]
 Name=COSMIC Screenshot
 Name[ar]=مُلتَقِطُ شَاشَةِ كوزمِك
+Name[es]=Captura de pantalla
 Name[pl]=Zrzuty ekranu COSMIC
 Name[pt]=Captura de Tela
 Name[zh_CN]=COSMIC 截图
@@ -10,6 +11,7 @@ Terminal=false
 Categories=COSMIC;Utility;
 Keywords=COSMIC;capture;screenshot;
 Keywords[ar]=كوزمِك;
+Keywords[es]=Screenshot;Captura;Imprimir;Print;
 Keywords[pt]=screenshot;print;
 Icon=com.system76.CosmicScreenshot
 StartupNotify=true
