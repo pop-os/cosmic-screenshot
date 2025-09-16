@@ -3,6 +3,8 @@ use clap::{ArgAction, Parser, command};
 use std::{collections::HashMap, fs, os::unix::fs::MetadataExt, path::PathBuf};
 use zbus::{Connection, proxy, zvariant::Value};
 
+mod localize;
+
 #[derive(Parser, Default, Debug, Clone, PartialEq, Eq)]
 #[command(version, about, long_about = None)]
 struct Args {
@@ -55,6 +57,8 @@ trait Notifications {
 //TODO: better error handling
 #[tokio::main(flavor = "current_thread")]
 async fn main() {
+    crate::localize::localize();
+
     let args = Args::parse();
     let picture_dir = (!args.interactive).then(|| {
         args.save_dir
@@ -74,28 +78,30 @@ async fn main() {
     let uri = response.uri();
     let path = match uri.scheme() {
         "file" => {
+            let response_path = uri
+                .to_file_path()
+                .unwrap_or_else(|_| panic!("unsupported response URI '{uri}'"));
             if let Some(picture_dir) = picture_dir {
                 let date = chrono::Local::now();
                 let filename = format!("Screenshot_{}.png", date.format("%Y-%m-%d_%H-%M-%S"));
                 let path = picture_dir.join(filename);
-                let tmp_path = uri.path();
                 if fs::metadata(&picture_dir)
                     .expect("Failed to get medatata on filesystem for screenshot destination")
                     .dev()
-                    != fs::metadata(tmp_path)
+                    != fs::metadata(&response_path)
                         .expect("Failed to get metadata on filesystem for temporary path")
                         .dev()
                 {
                     // copy file instead
-                    fs::copy(tmp_path, &path).expect("failed to move screenshot");
-                    fs::remove_file(tmp_path).expect("failed to remove temporary screenshot");
+                    fs::copy(&response_path, &path).expect("failed to move screenshot");
+                    fs::remove_file(&response_path).expect("failed to remove temporary screenshot");
                 } else {
-                    fs::rename(tmp_path, &path).expect("failed to move screenshot");
+                    fs::rename(&response_path, &path).expect("failed to move screenshot");
                 }
 
                 path.to_string_lossy().to_string()
             } else {
-                uri.path().to_string()
+                response_path.to_string_lossy().to_string()
             }
         }
         "clipboard" => String::new(),
@@ -110,19 +116,19 @@ async fn main() {
             .expect("failed to connect to session bus");
 
         let message = if path.is_empty() {
-            "Screenshot saved to clipboard"
+            fl!("screenshot-saved-to-clipboard")
         } else {
-            "Screenshot saved to:"
+            fl!("screenshot-saved-to")
         };
         let proxy = NotificationsProxy::new(&connection)
             .await
             .expect("failed to create proxy");
         _ = proxy
             .notify(
-                "COSMIC Screenshot",
+                &fl!("cosmic-screenshot"),
                 0,
                 "com.system76.CosmicScreenshot",
-                message,
+                &message,
                 &path,
                 &[],
                 HashMap::from([("transient", &Value::Bool(true))]),

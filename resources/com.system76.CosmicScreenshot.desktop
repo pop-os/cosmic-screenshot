@@ -1,16 +1,17 @@
 [Desktop Entry]
 Name=COSMIC Screenshot
-Name[zh_CN]=COSMIC 截图
 Name[ar]=مُلتَقِطُ شَاشَةِ كوزمِك
-Name[pt]=Captura de Tela
 Name[es]=Captura de pantalla
+Name[pl]=Zrzuty ekranu COSMIC
+Name[pt]=Captura de Tela
+Name[zh_CN]=COSMIC 截图
 Type=Application
 Exec=cosmic-screenshot
 Terminal=false
 Categories=COSMIC;Utility;
-Keywords=COSMIC;
+Keywords=COSMIC;capture;screenshot;
 Keywords[ar]=كوزمِك;
-Keywords[pt]=screenshot;print;
 Keywords[es]=Screenshot;Captura;Imprimir;Print;
+Keywords[pt]=screenshot;print;
 Icon=com.system76.CosmicScreenshot
 StartupNotify=true
