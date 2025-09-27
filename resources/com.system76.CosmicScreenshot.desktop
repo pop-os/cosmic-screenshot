@@ -1,6 +1,7 @@
 [Desktop Entry]
 Name=COSMIC Screenshot
 Name[ar]=لقطة شاشة COSMIC
+Name[cs]=Snímky obrazovky COSMIC
 Name[es]=Captura de pantalla
 Name[pl]=Zrzuty ekranu COSMIC
 Name[pt]=Captura de Tela
@@ -13,6 +14,7 @@ Terminal=false
 Categories=COSMIC;Utility;
 Keywords=COSMIC;capture;screenshot;
 Keywords[ar]=لقطة;صورة;شاشة;لقطة شاشة;
+Keywords[cs]=Screenshot;snímek;snímky;zachytit;
 Keywords[es]=Screenshot;Captura;Imprimir;Print;
 Keywords[pt]=screenshot;print;
 Keywords[nl]=COSMIC;afdruk;schermafdruk;
