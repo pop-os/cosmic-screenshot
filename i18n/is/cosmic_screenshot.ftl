@@ -1,0 +1,1 @@
+cosmic-screenshot = COSMIC skjámynd
