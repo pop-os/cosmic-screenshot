@@ -1,4 +1,3 @@
-cosmic-screenshot = COSMIC Schermafdrukken
-
-screenshot-saved-to-clipboard = Schermafdruk is in het klembord gezet
+cosmic-screenshot = COSMIC Schermafdruk
+screenshot-saved-to-clipboard = Schermafdruk naar klembord gekopieerd
 screenshot-saved-to = Schermafdruk is hier opgeslagen:
