@@ -72,8 +72,19 @@ async fn main() {
         .send()
         .await
         .expect("failed to send screenshot request")
-        .response()
-        .expect("failed to receive screenshot response");
+        .response();
+
+    let response = match response {
+        Err(err) => {
+            if err.to_string().contains("Cancelled") {
+                println!("Screenshot cancelled by user");
+                std::process::exit(0);
+            }
+            eprintln!("Error taking screenshot: {}", err);
+            std::process::exit(1);
+        }
+        Ok(response) => response,
+    };
 
     let uri = response.uri();
     let path = match uri.scheme() {
