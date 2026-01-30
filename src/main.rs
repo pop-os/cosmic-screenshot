@@ -1,6 +1,7 @@
 use ashpd::desktop::screenshot::Screenshot;
 use clap::{ArgAction, Parser, command};
 use std::{collections::HashMap, fs, os::unix::fs::MetadataExt, path::PathBuf};
+use tokio::process::Command;
 use zbus::{Connection, proxy, zvariant::Value};
 
 mod localize;
@@ -35,6 +36,14 @@ struct Args {
     /// The directory to save the screenshot to, if not performing an interactive screenshot
     #[clap(short, long)]
     save_dir: Option<PathBuf>,
+    /// Copy the screenshot to clipboard when saving to file
+    #[clap(long,
+        default_missing_value("true"),
+        default_value("true"),
+        num_args(0..=1),
+        require_equals(true),
+        action = ArgAction::Set)]
+    copy_to_clipboard: bool,
 }
 
 #[proxy(assume_defaults = true)]
@@ -87,7 +96,7 @@ async fn main() {
     };
 
     let uri = response.uri();
-    let path = match uri.scheme() {
+    let (path, copied_to_clipboard) = match uri.scheme() {
         "file" => {
             let response_path = uri
                 .to_file_path()
@@ -110,12 +119,30 @@ async fn main() {
                     fs::rename(&response_path, &path).expect("failed to move screenshot");
                 }
 
-                path.to_string_lossy().to_string()
+                let mut copied = false;
+                if args.copy_to_clipboard {
+                    // Copy the saved file to clipboard using wl-copy
+                    let status = Command::new("wl-copy")
+                        .arg("--type")
+                        .arg("image/png")
+                        .arg("--")
+                        .arg(&path)
+                        .status()
+                        .await
+                        .expect("failed to run wl-copy");
+                    if status.success() {
+                        copied = true;
+                    } else {
+                        eprintln!("Failed to copy screenshot to clipboard");
+                    }
+                }
+
+                (path.to_string_lossy().to_string(), copied)
             } else {
-                response_path.to_string_lossy().to_string()
+                (response_path.to_string_lossy().to_string(), false)
             }
         }
-        "clipboard" => String::new(),
+        "clipboard" => (String::new(), true),
         scheme => panic!("unsupported scheme '{}'", scheme),
     };
 
@@ -126,7 +153,9 @@ async fn main() {
             .await
             .expect("failed to connect to session bus");
 
-        let message = if path.is_empty() {
+        let message = if copied_to_clipboard && !path.is_empty() {
+            fl!("screenshot-saved-to-and-clipboard")
+        } else if copied_to_clipboard {
             fl!("screenshot-saved-to-clipboard")
         } else {
             fl!("screenshot-saved-to")
