@@ -1,7 +1,7 @@
 use ashpd::desktop::screenshot::Screenshot;
 use clap::{ArgAction, Parser, command};
 use std::{collections::HashMap, fs, os::unix::fs::MetadataExt, path::PathBuf};
-use tokio::process::Command;
+use wl_clipboard_rs::copy::{MimeType, Options, Source, copy};
 use zbus::{Connection, proxy, zvariant::Value};
 
 mod localize;
@@ -121,19 +121,34 @@ async fn main() {
 
                 let mut copied = false;
                 if args.copy_to_clipboard {
-                    // Copy the saved file to clipboard using wl-copy
-                    let status = Command::new("wl-copy")
-                        .arg("--type")
-                        .arg("image/png")
-                        .arg("--")
-                        .arg(&path)
-                        .status()
-                        .await
-                        .expect("failed to run wl-copy");
-                    if status.success() {
-                        copied = true;
-                    } else {
-                        eprintln!("Failed to copy screenshot to clipboard");
+                    // Read file asynchronously then perform blocking clipboard copy in spawn_blocking
+                    match tokio::fs::read(&path).await {
+                        Ok(bytes) => {
+                            let bytes_boxed = bytes.into_boxed_slice();
+                            let result = tokio::task::spawn_blocking(move || {
+                                let opts = Options::new();
+                                let source = Source::Bytes(bytes_boxed);
+                                copy(opts, source, MimeType::Autodetect)
+                            })
+                            .await;
+                            match result {
+                                Ok(Ok(())) => {
+                                    copied = true;
+                                }
+                                Ok(Err(err)) => {
+                                    eprintln!("Failed to copy screenshot to clipboard: {}", err);
+                                }
+                                Err(join_err) => {
+                                    eprintln!(
+                                        "Clipboard copy task panicked or was cancelled: {}",
+                                        join_err
+                                    );
+                                }
+                            }
+                        }
+                        Err(e) => {
+                            eprintln!("Failed to read screenshot file for clipboard: {}", e);
+                        }
                     }
                 }
 
