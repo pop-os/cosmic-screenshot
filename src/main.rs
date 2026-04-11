@@ -83,6 +83,7 @@ async fn main() {
             eprintln!("Error taking screenshot: {}", err);
             std::process::exit(1);
         }
+        println!("Error details:\n{}", err.to_string());
         Ok(response) => response,
     };
 
