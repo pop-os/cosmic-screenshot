@@ -78,12 +78,13 @@ async fn main() {
         Err(err) => {
             if err.to_string().contains("Cancelled") {
                 println!("Screenshot cancelled by user");
+                println!("Error details:\n{}", err.to_string()); //Extra details, by Goldencubist
                 std::process::exit(0);
             }
             eprintln!("Error taking screenshot: {}", err);
+            println!("Error details:\n{}", err.to_string()); //Extra details, by Goldencubist
             std::process::exit(1);
         }
-        println!("Error details:\n{}", err.to_string());
         Ok(response) => response,
     };
 
