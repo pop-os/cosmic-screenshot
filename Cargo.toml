@@ -5,13 +5,10 @@ edition = "2024"
 
 [dependencies]
 ashpd = { version = "0.12", default-features = false, features = ["tokio"] }
-chrono = { version = "0.4.41", default-features = false, features = [
-    "alloc",
-    "clock",
-] }
+jiff = "0.2"
 dirs = "6"
-tokio = { version = "1.47.1", default-features = false, features = ["macros"] }
-clap = { version = "4.5.46", features = ["derive"] }
+tokio = { version = "1.52.1", default-features = false, features = ["macros"] }
+clap = { version = "4.6.1", features = ["derive"] }
 zbus = { version = "5", default-features = false }
 
 # Internationalization
@@ -20,7 +17,7 @@ i18n-embed = { version = "0.16", features = [
     "desktop-requester",
 ] }
 i18n-embed-fl = "0.10"
-rust-embed = "8.5"
+rust-embed = "8.11"
 
 [profile.release]
 codegen-units = 1
