@@ -1,5 +1,5 @@
 use ashpd::desktop::screenshot::Screenshot;
-use clap::{ArgAction, Parser, command};
+use clap::{ArgAction, Parser};
 use std::{collections::HashMap, fs, os::unix::fs::MetadataExt, path::PathBuf};
 use zbus::{Connection, proxy, zvariant::Value};
 
@@ -93,8 +93,8 @@ async fn main() {
                 .to_file_path()
                 .unwrap_or_else(|_| panic!("unsupported response URI '{uri}'"));
             if let Some(picture_dir) = picture_dir {
-                let date = chrono::Local::now();
-                let filename = format!("Screenshot_{}.png", date.format("%Y-%m-%d_%H-%M-%S"));
+                let date = jiff::Zoned::now();
+                let filename = format!("Screenshot_{}.png", date.strftime("%Y-%m-%d_%H-%M-%S"));
                 let path = picture_dir.join(filename);
                 if fs::metadata(&picture_dir)
                     .expect("Failed to get medatata on filesystem for screenshot destination")
