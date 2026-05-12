@@ -60,11 +60,13 @@ async fn main() {
     crate::localize::localize();
 
     let args = Args::parse();
-    let picture_dir = (!args.interactive).then(|| {
-        args.save_dir
-            .filter(|dir| dir.is_dir())
-            .unwrap_or_else(|| dirs::picture_dir().expect("failed to locate picture directory"))
-    });
+    let picture_dir = args
+        .save_dir
+        .filter(|dir| dir.is_dir())
+        .or_else(|| {
+            (!args.interactive)
+                .then(|| dirs::picture_dir().expect("failed to locate picture directory"))
+        });
 
     let response = Screenshot::request()
         .interactive(args.interactive)
