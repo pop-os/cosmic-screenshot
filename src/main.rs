@@ -1,9 +1,11 @@
 use ashpd::desktop::screenshot::Screenshot;
 use clap::{ArgAction, Parser};
 use std::{collections::HashMap, fs, os::unix::fs::MetadataExt, path::PathBuf};
-use zbus::{Connection, proxy, zvariant::Value};
+use zbus::{Connection, fdo::RequestNameFlags, proxy, zvariant::Value};
 
 mod localize;
+
+const DBUS_NAME: &str = "com.system76.CosmicScreenshot";
 
 #[derive(Parser, Default, Debug, Clone, PartialEq, Eq)]
 #[command(version, about, long_about = None)]
@@ -68,6 +70,29 @@ async fn main() {
                 .then(|| dirs::picture_dir().expect("failed to locate picture directory"))
         });
 
+    let connection = Connection::session()
+        .await
+        .expect("failed to connect to session bus");
+
+    // Don't stack another selection UI on top of one that is already open
+    // Not the default flags, which would replace the existing owner instead of failing
+    if args.interactive {
+        match connection
+            .request_name_with_flags(DBUS_NAME, RequestNameFlags::DoNotQueue.into())
+            .await
+        {
+            Ok(_) => {}
+            Err(zbus::Error::NameTaken) => {
+                println!("Screenshot already in progress");
+                return;
+            }
+            Err(err) => {
+                eprintln!("Error requesting bus name: {}", err);
+                std::process::exit(1);
+            }
+        }
+    }
+
     let response = Screenshot::request()
         .interactive(args.interactive)
         .modal(args.modal)
@@ -124,10 +149,6 @@ async fn main() {
     println!("{path}");
 
     if args.notify {
-        let connection = Connection::session()
-            .await
-            .expect("failed to connect to session bus");
-
         let message = if path.is_empty() {
             fl!("screenshot-saved-to-clipboard")
         } else {
