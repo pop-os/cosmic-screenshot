@@ -223,7 +223,7 @@ dependencies = [
 
 [[package]]
 name = "cosmic-screenshot"
-version = "0.1.0"
+version = "1.6.0"
 dependencies = [
  "ashpd",
  "clap",
@@ -233,6 +233,7 @@ dependencies = [
  "jiff",
  "rust-embed",
  "tokio",
+ "xdgen",
  "zbus",
 ]
 
@@ -443,6 +444,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "freedesktop_entry_parser"
+version = "2.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2b368437186ec63ceb50d0832ee1ebcb5878037fe16ead1c68081d4aee0d140a"
+dependencies = [
+ "indexmap",
+ "nom",
+]
+
+[[package]]
 name = "futures-channel"
 version = "0.3.32"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -560,12 +571,6 @@ checksum = "9229cfe53dfd69f0609a49f65461bd93001ea1ef889cd5529dd176593f5338a1"
 dependencies = [
  "foldhash",
 ]
-
-[[package]]
-name = "hashbrown"
-version = "0.17.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4f467dd6dccf739c208452f8014c75c18bb8301b050ad1cfb27153803edb0f51"
 
 [[package]]
 name = "heck"
@@ -757,12 +762,12 @@ dependencies = [
 
 [[package]]
 name = "indexmap"
-version = "2.14.0"
+version = "2.11.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d466e9454f08e4a911e14806c24e16fba1b4c121d1ea474396f396069cf949d9"
+checksum = "4b0f83760fb341a774ed326568e19f5a863af4a952def8c39f9ab92fd95b88e5"
 dependencies = [
  "equivalent",
- "hashbrown 0.17.0",
+ "hashbrown",
  "serde",
  "serde_core",
 ]
@@ -921,6 +926,15 @@ dependencies = [
  "libc",
  "wasi",
  "windows-sys",
+]
+
+[[package]]
+name = "nom"
+version = "8.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "df9761775871bdef83bee530e60050f7e54b1105350d6884eb0fb4f46c2f9405"
+dependencies = [
+ "memchr",
 ]
 
 [[package]]
@@ -1483,9 +1497,9 @@ dependencies = [
 
 [[package]]
 name = "toml_edit"
-version = "0.25.11+spec-1.1.0"
+version = "0.25.6+spec-1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0b59c4d22ed448339746c59b905d24568fcbb3ab65a500494f7b8c3e97739f2b"
+checksum = "0db3bae107c9522f86d361697dee1d7386a2ddcf659d5aea5159819a21a3c4a7"
 dependencies = [
  "indexmap",
  "toml_datetime",
@@ -1740,7 +1754,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "47b807c72e1bac69382b3a6fb3dbe8ea4c0ed87ff5629b8685ae6b9a611028fe"
 dependencies = [
  "bitflags",
- "hashbrown 0.15.5",
+ "hashbrown",
  "indexmap",
  "semver",
 ]
@@ -1877,6 +1891,33 @@ name = "writeable"
 version = "0.6.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1ffae5123b2d3fc086436f8834ae3ab053a283cfac8fe0a0b8eaae044768a4c4"
+
+[[package]]
+name = "xdgen"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "25af88f104f06d5aeb80c77e5eb85e6f6f355f86f6e34307a14befd716efe4bf"
+dependencies = [
+ "fluent",
+ "freedesktop_entry_parser",
+ "unic-langid",
+ "xmltree",
+]
+
+[[package]]
+name = "xml"
+version = "1.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2f45bb2c13fec6a6cb4c0f76a7e94839e110a14ec803ec2940777a94c347bc52"
+
+[[package]]
+name = "xmltree"
+version = "0.12.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cbc04313cab124e498ab1724e739720807b6dc405b9ed0edc5860164d2e4ff70"
+dependencies = [
+ "xml",
+]
 
 [[package]]
 name = "yoke"

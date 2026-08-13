@@ -1,23 +1,22 @@
 name := 'cosmic-screenshot'
-export APPID := 'com.system76.CosmicScreenshot'
+appid := 'com.system76.CosmicScreenshot'
 
 rootdir := ''
 prefix := '/usr'
 
 base-dir := absolute_path(clean(rootdir / prefix))
-
-export INSTALL_DIR := base-dir / 'share'
-
 cargo-target-dir := env('CARGO_TARGET_DIR', 'target')
 bin-src := cargo-target-dir / 'release' / name
 bin-dst := base-dir / 'bin' / name
 
-desktop := APPID + '.desktop'
-desktop-src := 'resources' / desktop
-desktop-dest := clean(rootdir / prefix) / 'share' / 'applications' / desktop
+appdata := appid + '.metainfo.xml'
+appdata-dst := base-dir / 'share' / 'appdata' / appdata
 
-icons-src := 'resources' / 'icons' / 'hicolor'
-icons-dst := clean(rootdir / prefix) / 'share' / 'icons' / 'hicolor'
+desktop := appid + '.desktop'
+desktop-dst := base-dir / 'share' / 'applications' / desktop
+
+icons-src := 'data' / 'icons' / 'hicolor'
+icons-dst := base-dir / 'share' / 'icons' / 'hicolor'
 
 # Default recipe which runs `just build-release`
 default: build-release
@@ -54,14 +53,15 @@ run *args:
 # Installs files
 install:
     install -Dm0755 {{bin-src}} {{bin-dst}}
-    install -Dm0644 {{desktop-src}} {{desktop-dest}}
+    install -Dm0644 {{ 'target' / 'xdgen' / desktop }} {{desktop-dst}}
+    install -Dm0644 {{ 'target' / 'xdgen' / appdata }} {{appdata-dst}}
     for size in `ls {{icons-src}}`; do \
-        install -Dm0644 "{{icons-src}}/$size/apps/{{APPID}}.svg" "{{icons-dst}}/$size/apps/{{APPID}}.svg"; \
+        install -Dm0644 "{{icons-src}}/$size/apps/{{appid}}.svg" "{{icons-dst}}/$size/apps/{{appid}}.svg"; \
     done
 
 # Uninstalls installed files
 uninstall:
-    rm {{bin-dst}}
+    rm {{bin-dst}} {{desktop-dst}} {{appdata-dst}}
 
 # Vendor dependencies locally
 vendor:

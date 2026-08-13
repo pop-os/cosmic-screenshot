@@ -1,7 +1,10 @@
 [package]
 name = "cosmic-screenshot"
-version = "0.1.0"
+version = "1.6.0"
 edition = "2024"
+
+[build-dependencies]
+xdgen = "0.1"
 
 [dependencies]
 ashpd = { version = "0.12", default-features = false, features = ["tokio"] }
@@ -20,8 +23,4 @@ i18n-embed-fl = "0.10"
 rust-embed = "8.11"
 
 [profile.release]
-codegen-units = 1
 lto = "fat"
-opt-level = 3
-panic = "abort"
-strip = true
