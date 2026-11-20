@@ -1,6 +1,11 @@
 use ashpd::desktop::screenshot::Screenshot;
 use clap::{ArgAction, Parser};
-use std::{collections::HashMap, fs, os::unix::fs::MetadataExt, path::PathBuf};
+use std::{
+    collections::HashMap,
+    fs, io,
+    os::unix::fs::MetadataExt,
+    path::{Path, PathBuf},
+};
 use zbus::{Connection, proxy, zvariant::Value};
 
 mod localize;
@@ -63,10 +68,7 @@ async fn main() {
     let picture_dir = args
         .save_dir
         .filter(|dir| dir.is_dir())
-        .or_else(|| {
-            (!args.interactive)
-                .then(|| dirs::picture_dir().expect("failed to locate picture directory"))
-        });
+        .or_else(|| (!args.interactive).then(dirs::picture_dir).flatten());
 
     let response = Screenshot::request()
         .interactive(args.interactive)
@@ -94,28 +96,19 @@ async fn main() {
             let response_path = uri
                 .to_file_path()
                 .unwrap_or_else(|_| panic!("unsupported response URI '{uri}'"));
-            if let Some(picture_dir) = picture_dir {
-                let date = jiff::Zoned::now();
-                let filename = format!("Screenshot_{}.png", date.strftime("%Y-%m-%d_%H-%M-%S"));
-                let path = picture_dir.join(filename);
-                if fs::metadata(&picture_dir)
-                    .expect("Failed to get medatata on filesystem for screenshot destination")
-                    .dev()
-                    != fs::metadata(&response_path)
-                        .expect("Failed to get metadata on filesystem for temporary path")
-                        .dev()
-                {
-                    // copy file instead
-                    fs::copy(&response_path, &path).expect("failed to move screenshot");
-                    fs::remove_file(&response_path).expect("failed to remove temporary screenshot");
-                } else {
-                    fs::rename(&response_path, &path).expect("failed to move screenshot");
+            let path = match picture_dir {
+                Some(picture_dir) => {
+                    move_screenshot(&response_path, &picture_dir).unwrap_or_else(|err| {
+                        eprintln!(
+                            "failed to save screenshot to {}: {err}",
+                            picture_dir.display()
+                        );
+                        response_path
+                    })
                 }
-
-                path.to_string_lossy().to_string()
-            } else {
-                response_path.to_string_lossy().to_string()
-            }
+                None => response_path,
+            };
+            path.to_string_lossy().to_string()
         }
         "clipboard" => String::new(),
         scheme => panic!("unsupported scheme '{}'", scheme),
@@ -150,4 +143,22 @@ async fn main() {
             .await
             .expect("failed to send notification");
     }
+}
+
+fn move_screenshot(from: &Path, dir: &Path) -> io::Result<PathBuf> {
+    let date = jiff::Zoned::now();
+    let filename = format!("Screenshot_{}.png", date.strftime("%Y-%m-%d_%H-%M-%S"));
+    let path = dir.join(filename);
+    if fs::metadata(dir)?.dev() != fs::metadata(from)?.dev() {
+        if let Err(err) = fs::copy(from, &path) {
+            let _ = fs::remove_file(&path);
+            return Err(err);
+        }
+        if let Err(err) = fs::remove_file(from) {
+            eprintln!("failed to remove temporary screenshot: {err}");
+        }
+    } else {
+        fs::rename(from, &path)?;
+    }
+    Ok(path)
 }
